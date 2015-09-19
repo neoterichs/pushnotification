@@ -1,36 +1,23 @@
-angular.module('mysoundboard', ['ionic', 'mysoundboard.controllers', 'mysoundboard.services'])
+document.addEventListener("deviceready", init, false);
+function init() {
+	
+	
+	document.querySelector("#takeVideo").addEventListener("touchend", function() {
+		console.log("Take video");
+		navigator.device.capture.captureVideo(captureSuccess, captureError, {limit: 1});
+	}, false);
+	
+}
 
-.run(function($ionicPlatform) {
-  $ionicPlatform.ready(function() {
-    if (window.cordova && window.cordova.plugins && window.cordova.plugins.Keyboard) {
-      cordova.plugins.Keyboard.hideKeyboardAccessoryBar(true);
-      cordova.plugins.Keyboard.disableScroll(true);
+function captureError(e) {
+	console.log("capture error: "+JSON.stringify(e));
+}
 
-    }
-    if (window.StatusBar) {
-      // org.apache.cordova.statusbar required
-      StatusBar.styleLightContent();
-    }
-  });
-})
-
-.config(function($stateProvider, $urlRouterProvider) {
-
-  $stateProvider
-
-  .state('home', {
-    url: '/home',
-    controller: 'HomeCtrl',
-    templateUrl: 'templates/home.html'
-  })
-	.state('new', {
-		url:'/new',
-		controller: 'RecordCtrl',
-		templateUrl: 'templates/new.html'
-	});
-
-
-  // if none of the above states are matched, use this as the fallback
-  $urlRouterProvider.otherwise('/home');
-
-});
+function captureSuccess(s) {
+	console.log("Success");
+	console.dir(s[0]);
+	var v = "<video controls='controls'>";
+	v += "<source src='" + s[0].fullPath + "' type='video/mp4'>";
+	v += "</video>";
+	document.querySelector("#videoArea").innerHTML = v;
+}
