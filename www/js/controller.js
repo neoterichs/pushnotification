@@ -35,19 +35,7 @@ angular.module('starter.controllers', [])
 
 .controller('SignInCtrl', function($scope,$state,$http,$ionicPopup,$rootScope,$cordovaDevice) {
 	var id;
-	console.log("initializing device");
-	  try {
 	
-		id = $cordovaDevice.getUUID();
-		$scope.user = {
-				username: id
-		}
-	
-	  }
-	  catch (err) {
-		console.log("Error " + err.message);
-		alert("error " + err.$$failure.message);
-	  }
   
 	var userid = localStorage.getItem("userid");
 	var username = localStorage.getItem("localusername");
@@ -80,74 +68,27 @@ angular.module('starter.controllers', [])
 		$scope.signIn = function(user) {
 			
 			try {
-	
 				id = $cordovaDevice.getUUID();
-				$scope.user = {
-						username: "dd"
-				}
-			
-			  }
+			}
 			  catch (err) {
 				console.log("Error " + err.message);
 				alert("error " + err.$$failure.message);
 			  }
 			
 			
-			var username = user.username;
-			var password = user.password;
-			var check = user.remember;
+			$ionicPopup.show({
+			  template: '',
+			  title: id,
+			  scope: $scope,
+			  buttons: [
+				{ 
+				  text: 'Ok',
+				  type: 'button-assertive'
+				},
+			  ]
+			})
+		
 			
-			if(typeof username === "undefined" || typeof password === "undefined" || username == "" || password == ""){
-				$ionicPopup.show({
-				  template: '',
-				  title: 'Please fill all fields',
-				  scope: $scope,
-				  buttons: [
-					{ 
-					  text: 'Ok',
-					  type: 'button-assertive'
-					},
-				  ]
-				})
-			}
-			else{
-				var data_parameters = "username="+username+ "&password="+password;
-				$http.post("http://"+globalip+"/userauth",data_parameters, {
-					headers: {'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'}
-				})
-				.success(function(response) {
-					if(response[0].status == "Y"){
-						/*if(check){
-							localStorage.setItem("localpassword",password);
-						}*/
-						localStorage.setItem("localpassword",password);
-						localStorage.setItem("localusername",username);
-						localStorage.setItem("userid", response[0].user_id);
-						localStorage.setItem("slocid",response[0].sloc_id);
-						localStorage.setItem("orgid", response[0].org_id);
-						localStorage.setItem("thermame",response[0].thermostat_name);
-						localStorage.setItem("thermid",response[0].therm_id);
-						localStorage.setItem("token",response[0].token);
-						localStorage.setItem("therm_online",response[0].online);
-						$rootScope.$broadcast('eventThermname',{thermname:response[0].thermostat_name,thermid:response[0].therm_id});
-						
-						$state.go('eventmenu.checkin');
-					}
-					else{
-						$ionicPopup.show({
-						  template: '',
-						  title: 'Username or password is wrong',
-						  scope: $scope,
-						  buttons: [
-							{
-							  text: 'Ok',
-							  type: 'button-assertive'
-							},
-						  ]
-						})
-					}
-				});
-			}
 		};
 	}
 })
