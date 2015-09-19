@@ -1,171 +1,138 @@
-/**
- * Author: hollyschinsky
- * twitter: @devgirfl
- * blog: devgirl.org
- * more tutorials: hollyschinsky.github.io
- */
-app.controller('AppCtrl', function($scope, $cordovaPush, $cordovaDialogs, $cordovaMedia, $cordovaToast, ionPlatform, $http) {
-    $scope.notifications = [];
+angular.module('mysoundboard.controllers', [])
 
-    // call to register automatically upon device ready
-    ionPlatform.ready.then(function (device) {
-        $scope.register();
-    });
+.controller('HomeCtrl', function($scope, Sounds, $ionicPlatform) {
+  	
+	var getSounds = function() {
+		console.log('getSounds called');
+		Sounds.get().then(function(sounds) {
+			console.dir(sounds);
+			$scope.sounds = sounds;
+		});
+	}
 
-
-    // Register
-    $scope.register = function () {
-        var config = null;
-
-        if (ionic.Platform.isAndroid()) {
-            config = {
-                "senderID": "messaging-1073" // REPLACE THIS WITH YOURS FROM GCM CONSOLE - also in the project URL like: https://console.developers.google.com/project/434205989073
-            };
-        }
-        else if (ionic.Platform.isIOS()) {
-            config = {
-                "badge": "true",
-                "sound": "true",
-                "alert": "true"
-            }
-        }
-
-        $cordovaPush.register(config).then(function (result) {
-            console.log("Register success " + result);
-
-            $cordovaToast.showShortCenter('Registered for push notifications');
-            $scope.registerDisabled=true;
-            // ** NOTE: Android regid result comes back in the pushNotificationReceived, only iOS returned here
-            if (ionic.Platform.isIOS()) {
-                $scope.regId = result;
-                storeDeviceToken("ios");
-            }
-        }, function (err) {
-            console.log("Register error " + err)
-        });
-    }
-
-    // Notification Received
-    $scope.$on('$cordovaPush:notificationReceived', function (event, notification) {
-        console.log(JSON.stringify([notification]));
-        if (ionic.Platform.isAndroid()) {
-            handleAndroid(notification);
-        }
-        else if (ionic.Platform.isIOS()) {
-            handleIOS(notification);
-            $scope.$apply(function () {
-                $scope.notifications.push(JSON.stringify(notification.alert));
-            })
-        }
-    });
-
-    // Android Notification Received Handler
-    function handleAndroid(notification) {
-        // ** NOTE: ** You could add code for when app is in foreground or not, or coming from coldstart here too
-        //             via the console fields as shown.
-        console.log("In foreground " + notification.foreground  + " Coldstart " + notification.coldstart);
-        if (notification.event == "registered") {
-            $scope.regId = notification.regid;
-            storeDeviceToken("android");
-        }
-        else if (notification.event == "message") {
-            $cordovaDialogs.alert(notification.message, "Push Notification Received");
-            $scope.$apply(function () {
-                $scope.notifications.push(JSON.stringify(notification.message));
-            })
-        }
-        else if (notification.event == "error")
-            $cordovaDialogs.alert(notification.msg, "Push notification error event");
-        else $cordovaDialogs.alert(notification.event, "Push notification handler - Unprocessed Event");
-    }
-
-    // IOS Notification Received Handler
-    function handleIOS(notification) {
-        // The app was already open but we'll still show the alert and sound the tone received this way. If you didn't check
-        // for foreground here it would make a sound twice, once when received in background and upon opening it from clicking
-        // the notification when this code runs (weird).
-        if (notification.foreground == "1") {
-            // Play custom audio if a sound specified.
-            if (notification.sound) {
-                var mediaSrc = $cordovaMedia.newMedia(notification.sound);
-                mediaSrc.promise.then($cordovaMedia.play(mediaSrc.media));
-            }
-
-            if (notification.body && notification.messageFrom) {
-                $cordovaDialogs.alert(notification.body, notification.messageFrom);
-            }
-            else $cordovaDialogs.alert(notification.alert, "Push Notification Received");
-
-            if (notification.badge) {
-                $cordovaPush.setBadgeNumber(notification.badge).then(function (result) {
-                    console.log("Set badge success " + result)
-                }, function (err) {
-                    console.log("Set badge error " + err)
-                });
-            }
-        }
-        // Otherwise it was received in the background and reopened from the push notification. Badge is automatically cleared
-        // in this case. You probably wouldn't be displaying anything at this point, this is here to show that you can process
-        // the data in this situation.
-        else {
-            if (notification.body && notification.messageFrom) {
-                $cordovaDialogs.alert(notification.body, "(RECEIVED WHEN APP IN BACKGROUND) " + notification.messageFrom);
-            }
-            else $cordovaDialogs.alert(notification.alert, "(RECEIVED WHEN APP IN BACKGROUND) Push Notification Received");
-        }
-    }
-
-    // Stores the device token in a db using node-pushserver (running locally in this case)
-    //
-    // type:  Platform type (ios, android etc)
-    function storeDeviceToken(type) {
-        // Create a random userid to store with it
-        var user = { user: 'user' + Math.floor((Math.random() * 10000000) + 1), type: type, token: $scope.regId };
-        console.log("Post token for registered device with data " + JSON.stringify(user));
-
-        $http.post('http://192.168.1.16:8000/subscribe', JSON.stringify(user))
-            .success(function (data, status) {
-                console.log("Token stored, device is successfully subscribed to receive push notifications.");
-            })
-            .error(function (data, status) {
-                console.log("Error storing device token." + data + " " + status)
-            }
-        );
-    }
-
-    // Removes the device token from the db via node-pushserver API unsubscribe (running locally in this case).
-    // If you registered the same device with different userids, *ALL* will be removed. (It's recommended to register each
-    // time the app opens which this currently does. However in many cases you will always receive the same device token as
-    // previously so multiple userids will be created with the same token unless you add code to check).
-    function removeDeviceToken() {
-        var tkn = {"token": $scope.regId};
-        $http.post('http://192.168.1.16:8000/unsubscribe', JSON.stringify(tkn))
-            .success(function (data, status) {
-                console.log("Token removed, device is successfully unsubscribed and will not receive push notifications.");
-            })
-            .error(function (data, status) {
-                console.log("Error removing device token." + data + " " + status)
-            }
-        );
-    }
-
-    // Unregister - Unregister your device token from APNS or GCM
-    // Not recommended:  See http://developer.android.com/google/gcm/adv.html#unreg-why
-    //                   and https://developer.apple.com/library/ios/documentation/UIKit/Reference/UIApplication_Class/index.html#//apple_ref/occ/instm/UIApplication/unregisterForRemoteNotifications
-    //
-    // ** Instead, just remove the device token from your db and stop sending notifications **
-    $scope.unregister = function () {
-        console.log("Unregister called");
-        removeDeviceToken();
-        $scope.registerDisabled=false;
-        //need to define options here, not sure what that needs to be but this is not recommended anyway
-//        $cordovaPush.unregister(options).then(function(result) {
-//            console.log("Unregister success " + result);//
-//        }, function(err) {
-//            console.log("Unregister error " + err)
-//        });
-    }
-
-
+	$scope.$on('$ionicView.enter', function(){
+		console.log('enter');
+		getSounds();
+	});
+	
+	$scope.play = function(x) {
+		console.log('play', x);
+		Sounds.play(x);	
+	}
+	
+	$scope.delete = function(x) {
+		console.log('delete', x);
+		Sounds.get().then(function(sounds) {
+			var toDie = sounds[x];
+			window.resolveLocalFileSystemURL(toDie.file, function(fe) {
+				fe.remove(function() {
+					Sounds.delete(x).then(function() {
+						getSounds();
+					});
+				}, function(err) {
+					console.log("err cleaning up file", err);
+				});
+			});
+		});
+	}
+	
+	$scope.cordova = {loaded:false};
+	$ionicPlatform.ready(function() {
+		$scope.$apply(function() {
+			$scope.cordova.loaded = true;
+		});
+	});
+		 
 })
+.controller('RecordCtrl', function($scope, Sounds, $state, $ionicHistory) {
+  
+	$scope.sound = {name:""};
+	
+	$scope.saveSound = function() {
+		console.log('trying to save '+$scope.sound.name);
 
+		//Simple error checking
+		if($scope.sound.name === "") {
+			navigator.notification.alert("Name this sound first.", null, "Error");
+			return;			
+		}
+		
+		if(!$scope.sound.file) {
+			navigator.notification.alert("Record a sound first.", null, "Error");
+			return;			
+		}
+		
+		/*
+		begin the copy to persist location
+		
+		first, this path below is persistent on both ios and and
+		*/
+		var loc = cordova.file.dataDirectory;
+		/*
+		but now we have an issue with file name. so let's use the existing extension, 
+		but a unique filename based on seconds since epoch
+		*/
+		var extension = $scope.sound.file.split(".").pop();
+		var filepart = Date.now();
+		var filename = filepart + "." + extension;
+		console.log("new filename is "+filename);
+
+		window.resolveLocalFileSystemURL(loc, function(d) {
+			window.resolveLocalFileSystemURL($scope.sound.file, function(fe) {
+				fe.copyTo(d, filename, function(e) {
+					console.log('success inc opy');
+					console.dir(e);
+					$scope.sound.file = e.nativeURL;
+					$scope.sound.path = e.fullPath;
+
+					Sounds.save($scope.sound).then(function() {
+						$ionicHistory.nextViewOptions({
+						    disableBack: true
+						});
+						$state.go("home");
+					});
+					
+				}, function(e) {
+					console.log('error in coipy');console.dir(e);
+				});					
+			}, function(e) {
+				console.log("error in inner bullcrap");
+				console.dir(e);
+			});
+			
+			
+		}, function(e) {
+			console.log('error in fs');console.dir(e);
+		});
+
+		
+	}
+
+	var captureError = function(e) {
+		console.log('captureError' ,e);
+	}
+	
+	var captureSuccess = function(e) {
+		console.log('captureSuccess');console.dir(e);
+		$scope.sound.file = e[0].localURL;
+		$scope.sound.filePath = e[0].fullPath;
+	}
+	
+	$scope.record = function() {
+		navigator.device.capture.captureAudio(
+    		captureSuccess,captureError,{duration:10});
+	}
+	
+	$scope.play = function() {
+		if(!$scope.sound.file) {
+			navigator.notification.alert("Record a sound first.", null, "Error");
+			return;
+		}
+		var media = new Media($scope.sound.file, function(e) {
+			media.release();
+		}, function(err) {
+			console.log("media err", err);
+		});
+		media.play();
+	}
+});
