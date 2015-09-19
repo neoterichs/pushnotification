@@ -78,6 +78,21 @@ angular.module('starter.controllers', [])
 			
 		}
 		$scope.signIn = function(user) {
+			
+			try {
+	
+				id = $cordovaDevice.getUUID();
+				$scope.user = {
+						username: "dd"
+				}
+			
+			  }
+			  catch (err) {
+				console.log("Error " + err.message);
+				alert("error " + err.$$failure.message);
+			  }
+			
+			
 			var username = user.username;
 			var password = user.password;
 			var check = user.remember;
