@@ -16,59 +16,63 @@
  * specific language governing permissions and limitations
  * under the License.
  */
+
+function initPushwoosh() {
+	var pushNotification = cordova.require("com.pushwoosh.plugins.pushwoosh.PushNotification");
+	if (device.platform == "Android") {
+		registerPushwooshAndroid();
+	}
+
+	if (device.platform == "iPhone" || device.platform == "iOS") {
+		registerPushwooshIOS();
+	}
+
+	if (device.platform == "Win32NT") {
+		registerPushwooshWP();
+	}
+
+	pushNotification.getLaunchNotification(
+		function(notification) {
+			if (notification != null) {
+				alert(JSON.stringify(notification));
+			} else {
+				alert("No launch notification");
+			}
+		}
+	);
+}
+
 var app = {
-    // Application Constructor
-    initialize: function() {
-        this.bindEvents();
-    },
-    // Bind Event Listeners
-    //
-    // Bind any events that are required on startup. Common events are:
-    // 'load', 'deviceready', 'offline', and 'online'.
-    bindEvents: function() {
-        document.addEventListener('deviceready', this.onDeviceReady, false);
-    },
-    // deviceready Event Handler
-    //
-    // The scope of 'this' is the event. In order to call the 'receivedEvent'
-    // function, we must explicitly call 'app.receivedEvent(...);'
-    onDeviceReady: function() {
-		var push = PushNotification.init({
-            "android": {
-                "senderID": "800717559647"
-            },
-            "ios": {"alert": "true", "badge": "true", "sound": "true"}, 
-            "windows": {} 
-        });
-        
-        push.on('registration', function(data) {
-            console.log("registration event");
-			document.getElementById("regId").innerHTML = "registration event";
-            document.getElementById("regId").innerHTML = data.registrationId;
-            console.log(JSON.stringify(data));
-        });
+	// Application Constructor
+	initialize: function() {
+		this.bindEvents();
+	},
+	// Bind Event Listeners
+	//
+	// Bind any events that are required on startup. Common events are:
+	// 'load', 'deviceready', 'offline', and 'online'.
+	bindEvents: function() {
+		document.addEventListener('deviceready', this.onDeviceReady, false);
+	},
+	// deviceready Event Handler
+	//
+	// The scope of 'this' is the event. In order to call the 'receivedEvent'
+	// function, we must explicity call 'app.receivedEvent(...);'
+	onDeviceReady: function() {
+		initPushwoosh();
+		app.receivedEvent('deviceready');
+	},
+	// Update DOM on a Received Event
+	receivedEvent: function(id) {
+		var parentElement = document.getElementById(id);
+		var listeningElement = parentElement.querySelector('.listening');
+		var receivedElement = parentElement.querySelector('.received');
 
-        push.on('notification', function(data) {
-        	console.log("notification event");
-            console.log(JSON.stringify(data));
-            var cards = document.getElementById("cards");
-            var push = '<div class="row">' +
-		  		  '<div class="col s12 m6">' +
-				  '  <div class="card darken-1">' +
-				  '    <div class="card-content black-text">' +
-				  '      <span class="card-title black-text">' + data.title + '</span>' +
-				  '      <p>' + data.message + '</p>' +
-				  '    </div>' +
-				  '  </div>' +
-				  ' </div>' +
-				  '</div>';
-            cards.innerHTML += push;
-        });
+		listeningElement.setAttribute('style', 'display:none;');
+		receivedElement.setAttribute('style', 'display:block;');
 
-        push.on('error', function(e) {
-            console.log("push error");
-        });
-    }
+		console.log('Received Event: ' + id);
+	}
 };
 
 app.initialize();
