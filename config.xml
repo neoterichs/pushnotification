@@ -75,5 +75,22 @@
     <gap:splash gap:platform="ios" height="1136" src="res/screen/ios/screen-iphone-portrait-568h-2x.png" width="640" />
     <gap:splash gap:platform="ios" height="1024" src="res/screen/ios/screen-ipad-portrait.png" width="768" />
     <gap:splash gap:platform="winphone" src="res/screen/windows-phone/screen-portrait.jpg" />
+	
+	<!-- Urban Airship app credentials -->
+	<gap:plugin name="com.urbanairship.phonegap.pushnotification" version="2.7.0" />
+	<preference name="com.urbanairship.production_app_key" value="PRODUCTION_APP_KEY" />
+	<preference name="com.urbanairship.production_app_secret" value="PRODUCTION_APP_SECRET" />
+	<preference name="com.urbanairship.development_app_key" value="96bEo_1uRgOIeZ2XB9fLpw" />
+	<preference name="com.urbanairship.development_app_secret" value="AYO4UZBsQyW1U-w-BF082Q" />
+	
+	<!-- If the app is in production or not -->
+	<preference name="com.urbanairship.in_production" value="true | false" />
+	
+	<!-- Enable push when the application launches (instead of waiting for enablePush js call).  Defaults to false -->
+	<preference name="com.urbanairship.enable_push_onlaunch" value="true | false" />
+	
+	<!-- Only required for Android. -->
+	<preference name="com.urbanairship.gcm_sender" value="root-1051" />
+	
     <access origin="*" />
 </widget>
